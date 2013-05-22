@@ -7,10 +7,10 @@ Example:
 --------
 
 ```
-	example_text := "The the the the in this text. We want to find the excerpt of this text that contains the search_words."
-	search_ex := map[string]float64{"Excerpt": 1, "the": 0.05}
-	all_excerpts := FindExcerpts(search_ex, example_text, 20, false)
-	fmt.Println(all_excerpts)
+example_text := "The the the the in this text. We want to find the excerpt of this text that contains the search_words."
+search_ex := map[string]float64{"Excerpt": 1, "the": 0.05}
+all_excerpts := FindExcerpts(search_ex, example_text, 20, false)
+fmt.Println(all_excerpts)
 ```
 
 finds all possible excerpts and scores them:
@@ -33,14 +33,16 @@ the search_words.
 ]
 ```
 
+TODO: As you can see the algorithm is not too smart: From the match positions and string length it could be infered that matches 1,2,3 would all be scored lower than 0...
+
 If you're only interested in the best match you can set a flag.
 Multibyte characters are fine too:
 
 ```
-	example_text_jp := "日本語とか中国語でも大丈夫です。１バイト以上のunicodeの記号でもちゃんと出来ます。日本語が大丈夫。"
-	search_ex_jp := map[string]float64{"日本語": 1, "大丈夫": 1}
-	best_excerpts := FindExcerpts(search_ex_jp, example_text_jp, 8, true)[0]
-	fmt.Println(best_excerpts)
+example_text_jp := "日本語とか中国語でも大丈夫です。１バイト以上のunicodeの記号でもちゃんと出来ます。日本語が大丈夫。"
+search_ex_jp := map[string]float64{"日本語": 1, "大丈夫": 1}
+best_excerpts := FindExcerpts(search_ex_jp, example_text_jp, 8, true)[0]
+fmt.Println(best_excerpts)
 
 ```
 
@@ -59,7 +61,8 @@ of the searchterms it contains. setting findHighestScore the function will
 only return the ExcerptWindow with the hightest score.
 
 If a match is at the end of a window and overlaps its boundry the window
-will be extended to include the full match.
+will be extended to include the full match. Trailing whitespace is removed
+so that you could get an excerpt that is shorter then the specified length.
 
 An ExcerptWindow always starts with a match. In the future an option might
 be added to position/center the window around the matches.
