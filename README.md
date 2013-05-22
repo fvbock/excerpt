@@ -33,7 +33,7 @@ the search_words.
 ]
 ```
 
-TODO: As you can see the algorithm is not too smart: From the match positions and string length it could be infered that matches 1,2,3 would all be scored lower than 0...
+TODO: As you can see the algorithm is not too smart: From the match positions and string length it could be infered that matches 1,2,3 would all be scored lower than 0. If we are only looking for the best match these should be skipped...
 
 If you're only interested in the best match you can set a flag.
 Multibyte characters are fine too:
