@@ -5,7 +5,17 @@ import (
 	"index/suffixarray"
 	"sort"
 	"strings"
+	"time"
 )
+
+const (
+	PADDING_WIDTH = 5
+)
+
+type Match struct {
+	Start int
+	End   int
+}
 
 type ExcerptWindow struct {
 	Start      int
@@ -13,6 +23,7 @@ type ExcerptWindow struct {
 	CharLength int
 	Score      float64
 	Text       string
+	Matches    []*Match
 }
 
 func (e *ExcerptWindow) String() string {
@@ -33,20 +44,23 @@ will be extended to include the full match.
 An ExcerptWindow always starts with a match. In the future an option might
 be added to position/center the window around the matches.
 */
-func FindExcerpts(searchterms map[string]float64, body string, length int,
-	findHighestScore bool) (excerptCandidates []*ExcerptWindow) {
+func FindExcerpts(searchterms map[string]float64, body string, length int, expand bool, findHighestScore bool) (excerptCandidates []*ExcerptWindow) {
+	startTime := time.Now()
 	b := []byte(strings.ToLower(body))
 	var blength int = len(b)
-	index := suffixarray.New(b)
 	var offsets []int
+	var score, bytelength float64
+	index := suffixarray.New(b)
 	scores := make(map[int][]float64)
 	for term, weight := range searchterms {
 		termMatches := index.Lookup([]byte(strings.ToLower(term)), -1)
 		// use the character(rune not byte) length multiplied with the weight
 		// as score, we also need to know the byte length of the match in case
 		// we need to extend the window if the match overlaps the window boundry
+		score = float64(len([]rune(term))) * weight
+		bytelength = float64(len([]byte(term)))
 		for _, m := range termMatches {
-			scores[m] = []float64{float64(len([]rune(term))) * weight, float64(len([]byte(term)))}
+			scores[m] = []float64{score, bytelength}
 		}
 		offsets = append(offsets, termMatches...)
 	}
@@ -57,8 +71,10 @@ func FindExcerpts(searchterms map[string]float64, body string, length int,
 	var sliceEnd int
 	var HighestScore float64 = 0
 	var HighestScoreIdx int
+	var ew *ExcerptWindow
+	var r []rune
 	for i, offset := range offsets {
-		ew := &ExcerptWindow{
+		ew = &ExcerptWindow{
 			Start:      offset,
 			CharLength: length,
 			Score:      scores[offset][0],
@@ -71,7 +87,7 @@ func FindExcerpts(searchterms map[string]float64, body string, length int,
 		if sliceEnd > blength {
 			sliceEnd = blength
 		}
-		r := []rune(body[offset:sliceEnd])
+		r = []rune(body[offset:sliceEnd])
 		// if the window would exceed the end of body we adjust the length
 		if ew.CharLength >= len(r) {
 			ew.CharLength = len(r)
@@ -105,5 +121,6 @@ func FindExcerpts(searchterms map[string]float64, body string, length int,
 	if findHighestScore {
 		excerptCandidates = []*ExcerptWindow{excerptCandidates[HighestScoreIdx]}
 	}
+	fmt.Printf("runtime: %v\n", time.Since(startTime))
 	return
 }
