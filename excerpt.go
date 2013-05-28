@@ -5,7 +5,7 @@ import (
 	"index/suffixarray"
 	"sort"
 	"strings"
-	"time"
+	// "time"
 )
 
 const (
@@ -45,7 +45,7 @@ An ExcerptWindow always starts with a match. In the future an option might
 be added to position/center the window around the matches.
 */
 func FindExcerpts(searchterms map[string]float64, body string, length int, expand bool, findHighestScore bool) (excerptCandidates []*ExcerptWindow) {
-	startTime := time.Now()
+	// startTime := time.Now()
 	b := []byte(strings.ToLower(body))
 	var blength int = len(b)
 	var offsets []int
@@ -70,9 +70,16 @@ func FindExcerpts(searchterms map[string]float64, body string, length int, expan
 	var nextMatchIdx int
 	var sliceEnd int
 	var HighestScore float64 = 0
-	var HighestScoreIdx int
+	var HighestScoreIdx int = 0
 	var ew *ExcerptWindow
 	var r []rune
+
+	// if we have no match we just send and excerpt that starts at the beginning
+	if len(offsets) == 0 {
+		scores[0] = []float64{0, 0}
+		offsets = []int{0}
+	}
+
 	for i, offset := range offsets {
 		ew = &ExcerptWindow{
 			Start:      offset,
@@ -121,6 +128,6 @@ func FindExcerpts(searchterms map[string]float64, body string, length int, expan
 	if findHighestScore {
 		excerptCandidates = []*ExcerptWindow{excerptCandidates[HighestScoreIdx]}
 	}
-	fmt.Printf("runtime: %v\n", time.Since(startTime))
+	// fmt.Printf("runtime: %v\n", time.Since(startTime))
 	return
 }
