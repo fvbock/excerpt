@@ -3,19 +3,20 @@ package excerpt
 import (
 	"fmt"
 	"index/suffixarray"
+	"log"
 	"sort"
 	"strings"
-	// "time"
+	"time"
 )
 
 const (
 	PADDING_WIDTH = 5
 )
 
-type Match struct {
-	Start int
-	End   int
-}
+// type Match struct {
+// 	Start int
+// 	End   int
+// }
 
 type ExcerptWindow struct {
 	Start      int
@@ -45,9 +46,10 @@ An ExcerptWindow always starts with a match. In the future an option might
 be added to position/center the window around the matches.
 */
 func FindExcerpts(searchterms map[string]float64, body string, length int, expand bool, findHighestScore bool) (excerptCandidates []*ExcerptWindow) {
-	// startTime := time.Now()
+	startTime := time.Now()
 	b := []byte(strings.ToLower(body))
 	var blength int = len(b)
+	// log.Printf("body length (in bytes): %v\n", blength)
 	var offsets []int
 	var score, bytelength float64
 	index := suffixarray.New(b)
@@ -64,8 +66,11 @@ func FindExcerpts(searchterms map[string]float64, body string, length int, expan
 		}
 		offsets = append(offsets, termMatches...)
 	}
-
+	log.Printf("finding matches took: %v. nr match positions: %v\n", time.Since(startTime), len(offsets))
 	sort.Ints(offsets)
+
+	// log.Println(offsets)
+	// log.Println(scores)
 
 	var nextMatchIdx int
 	var sliceEnd int
@@ -81,6 +86,7 @@ func FindExcerpts(searchterms map[string]float64, body string, length int, expan
 	}
 
 	for i, offset := range offsets {
+		// log.Printf("o")
 		ew = &ExcerptWindow{
 			Start:      offset,
 			CharLength: length,
@@ -94,6 +100,7 @@ func FindExcerpts(searchterms map[string]float64, body string, length int, expan
 		if sliceEnd > blength {
 			sliceEnd = blength
 		}
+		// startTimeCnv := time.Now()
 		r = []rune(body[offset:sliceEnd])
 		// if the window would exceed the end of body we adjust the length
 		if ew.CharLength >= len(r) {
@@ -101,9 +108,11 @@ func FindExcerpts(searchterms map[string]float64, body string, length int, expan
 		}
 		r = r[0:ew.CharLength]
 		ew.ByteLength = len([]byte(string(r)))
+		// log.Printf("runtime []rune/[]byte conversions: %v\n", time.Since(startTimeCnv))
 
 		nextMatchIdx = i + 1
 		for {
+			// log.Printf("n")
 			if nextMatchIdx >= len(offsets) || offsets[nextMatchIdx] > offset+ew.ByteLength {
 				break
 			}
@@ -128,6 +137,6 @@ func FindExcerpts(searchterms map[string]float64, body string, length int, expan
 	if findHighestScore {
 		excerptCandidates = []*ExcerptWindow{excerptCandidates[HighestScoreIdx]}
 	}
-	// fmt.Printf("runtime: %v\n", time.Since(startTime))
+	log.Printf("runtime: %v\n", time.Since(startTime))
 	return
 }
