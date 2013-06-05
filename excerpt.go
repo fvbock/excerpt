@@ -13,11 +13,6 @@ const (
 	PADDING_WIDTH = 5
 )
 
-// type Match struct {
-// 	Start int
-// 	End   int
-// }
-
 type ExcerptWindow struct {
 	Start      int
 	ByteLength int
