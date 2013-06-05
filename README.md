@@ -3,8 +3,16 @@ excerpt
 
 excerpt is a library written in go to search for weighted terms in a body of text and return scored excerpts containing those terms.
 
-Example:
---------
+[NOTE]: The first version of this package (`excerpt.go` with the main function `FindExcerpts`) did not operate very well on larger (several MB) strings. The new version (in `excerpt_bm.go` mainly and with the main function `FindExcerptsBM`) uses a [Boyer-Moore string search algorithm implemented by J. E. Ivancich](https://github.com/ivancich/substr) and an optimized version of the excerpt scoring algorithm. I keep the old version in here for now as the new one does only return the highest scored excerpt and thus does not yet implement the full signature of the first one. I might drop that functionality completely though.
+
+Example NEW implementation:
+---------------------------
+
+TODO
+
+
+OLD Example:
+------------
 
 ```
 example_text := "The the the the in this text. We want to find the excerpt of this text that contains the search_words."
