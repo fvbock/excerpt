@@ -10,6 +10,14 @@ import (
 )
 
 /*
+FindExcerpts searches searchterms in body and returns the highest scoring
+excerpt of a given length that contains the terms.
+*/
+func FindBestExcerptBM(searchterms map[string]float64, body string, eLength int) (e *ExcerptWindowBM) {
+	return FindExcerptsBM(searchterms, body, eLength, true)[0]
+}
+
+/*
 FindExcerpts searches searchterms in body and returns excerpts of a given
 length that contain the terms.
 
@@ -19,11 +27,8 @@ only return the ExcerptWindow with the hightest score.
 
 If a match is at the end of a window and overlaps its boundry the window
 will be extended to include the full match.
-
-An ExcerptWindow always starts with a match. In the future an option might
-be added to position/center the window around the matches.
 */
-func FindExcerptsBM(searchterms map[string]float64, body string, eLength int, expand bool, findHighestScore bool) (excerptCandidates []*ExcerptWindowBM) {
+func FindExcerptsBM(searchterms map[string]float64, body string, eLength int, findHighestScore bool) (excerptCandidates []*ExcerptWindowBM) {
 	// startTime := time.Now()
 	var excerptLength uint32 = uint32(eLength)
 	var offsets []uint32
@@ -209,27 +214,32 @@ func FindExcerptsBM(searchterms map[string]float64, body string, eLength int, ex
 			highestScoreWindow.Score = currentWindow.Score
 			highestScoreWindow.Matches = currentWindow.Matches
 		}
+		if findHighestScore == false {
+			w := &ExcerptWindowBM{
+				Start:      currentWindow.Start,
+				CharLength: currentWindow.CharLength,
+				ByteLength: currentWindow.ByteLength,
+				Score:      currentWindow.Score,
+				Matches:    currentWindow.Matches,
+			}
+			w.AdjustWindow(bodyReader)
+			w.MaterializeWindow(bodyReader)
+			excerptCandidates = append(excerptCandidates, w)
+		}
 	}
+	if findHighestScore == true {
+		// catch zero match case
+		if len(offsets) == 0 {
+			highestScoreWindow.AddMatch(&Match{
+				Start:      0,
+				Score:      0,
+				ByteLength: highestScoreWindow.CharLength,
+			})
+			highestScoreWindow.AdjustWindow(bodyReader)
+		}
 
-	// catch zero match case
-	if len(offsets) == 0 {
-		highestScoreWindow.AddMatch(&Match{
-			Start:      0,
-			Score:      0,
-			ByteLength: highestScoreWindow.CharLength,
-		})
-		highestScoreWindow.AdjustWindow(bodyReader)
+		highestScoreWindow.MaterializeWindow(bodyReader)
+		excerptCandidates = append(excerptCandidates, highestScoreWindow)
 	}
-
-	highestScoreWindow.MaterializeWindow(bodyReader)
-
-	// if !utf8.ValidString(highestScoreWindow.Text) {
-	// 	log.Println(highestScoreWindow.Text)
-	// 	highestScoreWindow.Text = "FUCK. UTF got borked. >_<"
-	// }
-
-	// log.Printf("total time: %v. nr match positions: %v\n", time.Since(startTime), len(scores.s))
-
-	excerptCandidates = append(excerptCandidates, highestScoreWindow)
 	return
 }

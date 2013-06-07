@@ -10,8 +10,10 @@ func TestFindExcerptsBM(t *testing.T) {
 
 	var l int = 50
 	search := map[string]float64{"search": 1, "in": 0.05}
-	bestBM := FindExcerptsBM(search, text, l, true, true)
-	fmt.Println("DONE", bestBM)
+	bestBM := FindBestExcerptBM(search, text, l)
+	allBM := FindExcerptsBM(search, text, l, false)
+	fmt.Println("BEST", bestBM)
+	fmt.Println("ALL", allBM)
 
 	text2 := `「なめ猫」生みの親、１億１０００万円脱税容疑
 
@@ -89,8 +91,10 @@ func TestFindExcerptsBM(t *testing.T) {
 
 	// text2 = "万円23456789012345678901234567890123456789012345678万円-----万円万円------"
 
-	var l2 int = 200
+	var l2 int = 100
 	search2 := map[string]float64{"万円": 1}
-	bestBM = FindExcerptsBM(search2, text2, l2, true, true)
-	fmt.Println("BEST:\n", bestBM, "\n")
+	bestBM = FindBestExcerptBM(search2, text2, l2)
+	allBM = FindExcerptsBM(search2, text2, l2, false)
+	fmt.Println("BEST", bestBM)
+	fmt.Println("ALL", allBM)
 }
