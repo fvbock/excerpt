@@ -2,11 +2,10 @@ package excerpt
 
 import (
 	"github.com/fvbock/substr/src/substr"
+	"log"
 	"strings"
 	"sync"
 	// "time"
-	// "unicode/utf8"
-	// "log"
 )
 
 /*
@@ -49,7 +48,6 @@ func FindExcerptsBM(searchterms map[string]float64, body string, eLength int, fi
 	offsetSink := make(chan uint32)
 
 	bodyReader := strings.NewReader(body)
-	body = strings.ToLower(body)
 
 	for term, weight := range searchterms {
 		offsetChannels[term] = substr.IndexesWithinReaderStr(strings.NewReader(body), strings.ToLower(term))
@@ -60,7 +58,6 @@ func FindExcerptsBM(searchterms map[string]float64, body string, eLength int, fi
 		finishedOffsetChannels[term] = false
 		channelkeys = append(channelkeys, term)
 	}
-
 	go func() {
 	fanin:
 		for {
@@ -84,11 +81,19 @@ func FindExcerptsBM(searchterms map[string]float64, body string, eLength int, fi
 						flush = true
 					}
 				} else {
-					sortBuffers[term] = append(sortBuffers[term], o.Offset)
-					minFlushCountDown -= 1
-
 					scores.Lock()
-					scores.s[o.Offset] = termScores[term]
+					// do only count the highest scored match at a position
+					if _, haveMatch := scores.s[o.Offset]; haveMatch {
+						if scores.s[o.Offset].Score < termScores[term].Score {
+							sortBuffers[term] = append(sortBuffers[term], o.Offset)
+							minFlushCountDown -= 1
+							scores.s[o.Offset] = termScores[term]
+						}
+					} else {
+						sortBuffers[term] = append(sortBuffers[term], o.Offset)
+						minFlushCountDown -= 1
+						scores.s[o.Offset] = termScores[term]
+					}
 					scores.Unlock()
 
 					if minFlushCountDown > 0 && flush == false {
@@ -163,6 +168,7 @@ func FindExcerptsBM(searchterms map[string]float64, body string, eLength int, fi
 
 			}
 			if len(channelkeys) == 0 {
+				// log.Printf("extraction runtime: %v\n", time.Since(startTime))
 				close(offsetSink)
 				break
 			}
@@ -241,5 +247,6 @@ func FindExcerptsBM(searchterms map[string]float64, body string, eLength int, fi
 		highestScoreWindow.MaterializeWindow(bodyReader)
 		excerptCandidates = append(excerptCandidates, highestScoreWindow)
 	}
+	// log.Printf("runtime: %v\n", time.Since(startTime))
 	return
 }
