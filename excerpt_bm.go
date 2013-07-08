@@ -2,7 +2,7 @@ package excerpt
 
 import (
 	"github.com/fvbock/substr/src/substr"
-	"log"
+	// "log"
 	"strings"
 	"sync"
 	// "time"
