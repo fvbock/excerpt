@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	// "log"
+	"io"
 	"strings"
 	"unicode/utf8"
 )
@@ -74,7 +75,10 @@ func (e *ExcerptWindowBM) AdjustWindow(body *strings.Reader) {
 	// position here...
 	var moveOffsets uint32 = 0
 	for {
-		b, _ := body.ReadByte()
+		b, err := body.ReadByte()
+		if err == io.EOF {
+			break
+		}
 		if utf8.RuneStart(b) {
 			break
 		}
@@ -92,9 +96,6 @@ func (e *ExcerptWindowBM) AdjustWindow(body *strings.Reader) {
 	var rc uint32 = 0
 	for rc < e.CharLength {
 		_, size, _ := body.ReadRune()
-		// if rc < 2 {
-		// 	log.Printf("%v. RUNE: %s, size %v", rc+1, string(r), size)
-		// }
 		bufSize += size
 		rc += 1
 	}
@@ -117,7 +118,10 @@ func (e *ExcerptWindowBM) MaterializeWindow(body *strings.Reader) {
 	var bc int = 0
 	body.Seek(int64(e.Matches[0].Start), 0)
 	for bc < int(e.ByteLength) {
-		b, _ := body.ReadByte()
+		b, err := body.ReadByte()
+		if err == io.EOF {
+			break
+		}
 		buffer.WriteByte(b)
 		bc += 1
 	}
