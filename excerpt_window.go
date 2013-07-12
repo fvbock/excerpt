@@ -95,7 +95,11 @@ func (e *ExcerptWindowBM) AdjustWindow(body *strings.Reader) {
 	body.Seek(int64(e.Matches[0].Start), 0)
 	var rc uint32 = 0
 	for rc < e.CharLength {
-		_, size, _ := body.ReadRune()
+		_, size, err := body.ReadRune()
+		if err == io.EOF {
+			bufSize -= 1
+			break
+		}
 		bufSize += size
 		rc += 1
 	}
