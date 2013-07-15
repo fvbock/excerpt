@@ -83,10 +83,31 @@ func FindExcerptsBM(searchterms map[string]float64, body string, eLength int, fi
 				} else {
 					scores.Lock()
 					// do only count the highest scored match at a position
+					// this collision can happen if a word and it's stemmed
+					// version both get passed into the algorithm
 					if _, haveMatch := scores.s[o.Offset]; haveMatch {
 						if scores.s[o.Offset].Score < termScores[term].Score {
+							// we had a previous match with a lower score.
+							// we have to remove the previous match from the
+							// sortbuffer of the lower scored terms and replace
+							// the termscore at the current offset
+							for _, otherterm := range channelkeys {
+								// can only happen if the other term is a substring of term
+								if otherterm == term[0:len(otherterm)] {
+									for oi, otherOffset := range sortBuffers[otherterm] {
+										if otherOffset == o.Offset {
+											if len(sortBuffers[otherterm]) == oi+1 {
+												sortBuffers[otherterm] = sortBuffers[otherterm][:oi]
+											} else {
+												sortBuffers[otherterm] = append(sortBuffers[otherterm][:oi], sortBuffers[otherterm][oi+1:]...)
+											}
+											break
+										}
+									}
+								}
+							}
 							sortBuffers[term] = append(sortBuffers[term], o.Offset)
-							minFlushCountDown -= 1
+							// minFlushCountDown -= 1 // is this needed? check!
 							scores.s[o.Offset] = termScores[term]
 						}
 					} else {
@@ -117,7 +138,6 @@ func FindExcerptsBM(searchterms map[string]float64, body string, eLength int, fi
 
 				if flush == true {
 					outSorted = []uint32{}
-
 					for c, cKey := range channelkeys {
 						flushAllItems = true
 						for n, offs := range sortBuffers[cKey] {
