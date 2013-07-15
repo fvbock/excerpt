@@ -93,7 +93,7 @@ func FindExcerptsBM(searchterms map[string]float64, body string, eLength int, fi
 							// the termscore at the current offset
 							for _, otherterm := range channelkeys {
 								// can only happen if the other term is a substring of term
-								if otherterm == term[0:len(otherterm)] {
+								if len(otherterm) < len(term) && otherterm == term[0:len(otherterm)] {
 									for oi, otherOffset := range sortBuffers[otherterm] {
 										if otherOffset == o.Offset {
 											if len(sortBuffers[otherterm]) == oi+1 {
