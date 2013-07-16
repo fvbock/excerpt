@@ -3,9 +3,10 @@ package excerpt
 import (
 	"bytes"
 	"fmt"
-	// "log"
 	"io"
+	// "log"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -97,7 +98,7 @@ func (e *ExcerptWindowBM) AdjustWindow(body *strings.Reader) {
 	for rc < e.CharLength {
 		_, size, err := body.ReadRune()
 		if err == io.EOF {
-			bufSize -= 1
+			// bufSize -= 1
 			break
 		}
 		bufSize += size
@@ -115,12 +116,74 @@ func (e *ExcerptWindowBM) AdjustWindow(body *strings.Reader) {
 	if e.Matches[len(e.Matches)-1].Start+e.Matches[len(e.Matches)-1].ByteLength > e.Start+e.ByteLength {
 		e.ByteLength = (e.Matches[len(e.Matches)-1].Start + e.Matches[len(e.Matches)-1].ByteLength) - e.Start
 	}
+
+	// extend window to show more context at the beginning of the excerpt
+	if e.Start == 0 {
+		return
+	}
+
+	if e.Start < MAX_EXTEND_CHARS {
+		e.Start = 0
+		e.ByteLength += e.Start
+		return
+	}
+
+	var moveStart uint32 = 0
+	var lastWhiteSpace uint32 = 0
+	var lastWhiteSpaceLength int = 0
+
+	body.Seek(int64(e.Start)-1, 0)
+	for {
+		b, err := body.ReadByte()
+		if err == io.EOF {
+			break
+		}
+		if !utf8.RuneStart(b) {
+			body.Seek(-2, 1)
+			continue
+		}
+
+		body.Seek(-1, 1)
+		r, rs, err := body.ReadRune()
+		if err == io.EOF {
+			break
+		}
+		moveStart += uint32(rs)
+		// log.Println("read rune:", string(r), "rs:", rs, "moveStart", moveStart)
+		if unicode.IsSpace(r) {
+			lastWhiteSpace = moveStart
+			lastWhiteSpaceLength = rs
+		}
+
+		if strings.Index(END_PUNCT_CHAR, string(r)) != -1 {
+			// log.Println("found END_PUNCT_CHAR")
+			moveStart -= uint32(rs)
+			if moveStart == lastWhiteSpace {
+				moveStart -= uint32(lastWhiteSpaceLength)
+			}
+			break
+		}
+
+		if moveStart >= MAX_EXTEND_CHARS {
+			// log.Println("moveStart >= MAX_EXTEND_CHARS")
+			if !unicode.IsSpace(r) {
+				moveStart = lastWhiteSpace - uint32(lastWhiteSpaceLength)
+			}
+			break
+		}
+		spos := int64(-(rs + 1))
+		body.Seek(spos, 1)
+	}
+	e.Start -= moveStart
+	e.ByteLength += moveStart
 }
 
 func (e *ExcerptWindowBM) MaterializeWindow(body *strings.Reader) {
 	var buffer bytes.Buffer
 	var bc int = 0
-	body.Seek(int64(e.Matches[0].Start), 0)
+
+	// body.Seek(int64(e.Matches[0].Start), 0)
+	body.Seek(int64(e.Start), 0)
 	for bc < int(e.ByteLength) {
 		b, err := body.ReadByte()
 		if err == io.EOF {
@@ -129,6 +192,24 @@ func (e *ExcerptWindowBM) MaterializeWindow(body *strings.Reader) {
 		buffer.WriteByte(b)
 		bc += 1
 	}
+
+	// TODO: quick fix. is the last char complete?
+	body.Seek(-2, 1)
+	_, rs, err := body.ReadRune()
+	if err == io.EOF {
+	}
+	body.Seek(int64(-(rs - 1)), 1)
+
+	for i := 0; i < rs-1; i++ {
+		// log.Println("adjusting bytelength...")
+		b, err := body.ReadByte()
+		if err == io.EOF {
+			break
+		}
+		buffer.WriteByte(b)
+	}
+
 	e.Text = strings.TrimSpace(buffer.String())
 	e.ByteLength = uint32(len(e.Text))
+	// log.Println(e.Text)
 }

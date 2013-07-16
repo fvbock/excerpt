@@ -8,6 +8,14 @@ import (
 	// "time"
 )
 
+const (
+	// END_PUNCT_CHAR   = ":：.。,;、?？¿!！¡。，…"
+	END_PUNCT_CHAR   = ":：.。;?？¿!！¡。…"
+	MAX_EXTEND_CHARS = 25
+	MAX_EXTEND_WORDS = 5
+	// 。！？．；…
+)
+
 /*
 FindExcerpts searches searchterms in body and returns the highest scoring
 excerpt of a given length that contains the terms.
