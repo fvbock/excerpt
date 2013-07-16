@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	// "log"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -182,6 +181,31 @@ func (e *ExcerptWindowBM) MaterializeWindow(body *strings.Reader) {
 	var buffer bytes.Buffer
 	var bc int = 0
 
+	// check that the last rune is not cut off
+	body.Seek(int64(e.Start+e.ByteLength-1), 0)
+	var lastRune int = 1
+	for {
+		b, err := body.ReadByte()
+		if err == io.EOF {
+			break
+		}
+		if !utf8.RuneStart(b) {
+			body.Seek(-2, 1)
+			lastRune += 1
+			continue
+		} else {
+			break
+		}
+	}
+
+	body.Seek(-1, 1)
+	_, rs, _ := body.ReadRune()
+	// log.Println("lastRune", lastRune, "rs", rs)
+	if lastRune != rs {
+		// log.Println("lastRune != rs", lastRune, rs, "add", rs-lastRune, "bytes")
+		e.ByteLength += uint32(rs - lastRune)
+	}
+
 	// body.Seek(int64(e.Matches[0].Start), 0)
 	body.Seek(int64(e.Start), 0)
 	for bc < int(e.ByteLength) {
@@ -191,22 +215,6 @@ func (e *ExcerptWindowBM) MaterializeWindow(body *strings.Reader) {
 		}
 		buffer.WriteByte(b)
 		bc += 1
-	}
-
-	// TODO: quick fix. is the last char complete?
-	body.Seek(-2, 1)
-	_, rs, err := body.ReadRune()
-	if err == io.EOF {
-	}
-	body.Seek(int64(-(rs - 1)), 1)
-
-	for i := 0; i < rs-1; i++ {
-		// log.Println("adjusting bytelength...")
-		b, err := body.ReadByte()
-		if err == io.EOF {
-			break
-		}
-		buffer.WriteByte(b)
 	}
 
 	e.Text = strings.TrimSpace(buffer.String())
