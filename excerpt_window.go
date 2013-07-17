@@ -67,7 +67,8 @@ func (e *ExcerptWindowBM) RemoveFirstMatch() {
 	return
 }
 
-func (e *ExcerptWindowBM) AdjustWindow(body *strings.Reader) {
+func (e *ExcerptWindowBM) AdjustWindow(body *strings.Reader, prependChars uint32,
+	prependFullwords bool) {
 	var bufSize int
 	body.Seek(int64(e.Matches[0].Start), 0)
 	// i am not sure why but i get positions that were not rune starts in
@@ -116,12 +117,16 @@ func (e *ExcerptWindowBM) AdjustWindow(body *strings.Reader) {
 		e.ByteLength = (e.Matches[len(e.Matches)-1].Start + e.Matches[len(e.Matches)-1].ByteLength) - e.Start
 	}
 
+	if prependChars == 0 {
+		return
+	}
+
 	// extend window to show more context at the beginning of the excerpt
 	if e.Start == 0 {
 		return
 	}
 
-	if e.Start < MAX_EXTEND_CHARS {
+	if e.Start < prependChars {
 		e.Start = 0
 		e.ByteLength += e.Start
 		return
@@ -163,9 +168,9 @@ func (e *ExcerptWindowBM) AdjustWindow(body *strings.Reader) {
 			break
 		}
 
-		if moveStart >= MAX_EXTEND_CHARS {
-			// log.Println("moveStart >= MAX_EXTEND_CHARS")
-			if !unicode.IsSpace(r) {
+		if moveStart >= prependChars {
+			// log.Println("moveStart >= prependChars")
+			if !unicode.IsSpace(r) && prependFullwords {
 				moveStart = lastWhiteSpace - uint32(lastWhiteSpaceLength)
 			}
 			break

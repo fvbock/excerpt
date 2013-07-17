@@ -9,19 +9,16 @@ import (
 )
 
 const (
-	// END_PUNCT_CHAR   = ":：.。,;、?？¿!！¡。，…"
-	END_PUNCT_CHAR   = ":：.。;?？¿!！¡。…"
-	MAX_EXTEND_CHARS = 25
-	MAX_EXTEND_WORDS = 5
-	// 。！？．；…
+	END_PUNCT_CHAR = ":：.。;?？¿!！¡。…"
 )
 
 /*
 FindExcerpts searches searchterms in body and returns the highest scoring
 excerpt of a given length that contains the terms.
 */
-func FindBestExcerptBM(searchterms map[string]float64, body string, eLength int) (e *ExcerptWindowBM) {
-	return FindExcerptsBM(searchterms, body, eLength, true)[0]
+func FindBestExcerptBM(searchterms map[string]float64, body string, eLength int,
+	prependChars uint32, prependFullwords bool) (e *ExcerptWindowBM) {
+	return FindExcerptsBM(searchterms, body, eLength, true, prependChars, prependFullwords)[0]
 }
 
 /*
@@ -34,8 +31,16 @@ only return the ExcerptWindow with the hightest score.
 
 If a match is at the end of a window and overlaps its boundry the window
 will be extended to include the full match.
+
+If prepend option is set the excerpt will be prepended with a maximum of
+the set number if characters. If prependFullwords option is set the prepended
+text will go back to the last white space character when it hit the character
+limit. this makes sense for languages that separate words with white space
+characters and does make less sense for languages like chinese or japanese
+that don't.
 */
-func FindExcerptsBM(searchterms map[string]float64, body string, eLength int, findHighestScore bool) (excerptCandidates []*ExcerptWindowBM) {
+func FindExcerptsBM(searchterms map[string]float64, body string, eLength int,
+	findHighestScore bool, prependChars uint32, prependFullwords bool) (excerptCandidates []*ExcerptWindowBM) {
 	// startTime := time.Now()
 	var excerptLength uint32 = uint32(eLength)
 	var offsets []uint32
@@ -239,7 +244,7 @@ func FindExcerptsBM(searchterms map[string]float64, body string, eLength int, fi
 			break
 		}
 		if currentWindow.Score > highestScoreWindow.Score {
-			currentWindow.AdjustWindow(bodyReader)
+			currentWindow.AdjustWindow(bodyReader, prependChars, prependFullwords)
 			if currentWindow.Score < highestScoreWindow.Score {
 				continue
 			}
@@ -256,7 +261,7 @@ func FindExcerptsBM(searchterms map[string]float64, body string, eLength int, fi
 				Score:      currentWindow.Score,
 				Matches:    currentWindow.Matches,
 			}
-			w.AdjustWindow(bodyReader)
+			w.AdjustWindow(bodyReader, prependChars, prependFullwords)
 			w.MaterializeWindow(bodyReader)
 			excerptCandidates = append(excerptCandidates, w)
 		}
@@ -269,7 +274,7 @@ func FindExcerptsBM(searchterms map[string]float64, body string, eLength int, fi
 				Score:      0,
 				ByteLength: highestScoreWindow.CharLength,
 			})
-			highestScoreWindow.AdjustWindow(bodyReader)
+			highestScoreWindow.AdjustWindow(bodyReader, 0, false)
 		}
 
 		highestScoreWindow.MaterializeWindow(bodyReader)
