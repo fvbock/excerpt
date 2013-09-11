@@ -82,13 +82,13 @@ func FindExcerptsBM(searchterms map[string]float64, body string, eLength int,
 				if !open {
 					finishedOffsetChannels[term] = true
 					if len(sortBuffers[term]) == 0 {
-						// log.Printf("Remove %s (%v) from channelkeys: %v", term, i, channelkeys)
-						if len(channelkeys) > 1 {
+						if len(channelkeys) > 2 {
 							channelkeys = append(channelkeys[:i], channelkeys[i+1:]...)
+						} else if len(channelkeys) == 2 {
+							channelkeys = []string{channelkeys[1-i]}
 						} else {
 							channelkeys = []string{}
 						}
-						// log.Printf("OK. removed: %s (%v). channelkeys: %v", term, i, channelkeys)
 						continue fanin
 					} else {
 						flush = true
