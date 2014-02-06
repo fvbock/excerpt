@@ -105,7 +105,7 @@ func (e *ExcerptWindowBM) AdjustWindow(body *strings.Reader, prependChars uint32
 		rc += 1
 	}
 	e.ByteLength = uint32(bufSize)
-	for i := len(e.Matches) - 1; i > 0; i-- {
+	for i := len(e.Matches) - 1; i > 1; i-- {
 		if e.Matches[i].Start > e.Start+e.ByteLength {
 			e.Score -= e.Matches[i].Score
 			e.Matches = e.Matches[:i]
