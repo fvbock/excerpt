@@ -2,10 +2,8 @@ package excerpt
 
 import (
 	"github.com/fvbock/substr/src/substr"
-	// "log"
 	"strings"
 	"sync"
-	// "time"
 )
 
 const (
@@ -276,7 +274,6 @@ func FindExcerptsBM(searchterms map[string]float64, body string, eLength int,
 			})
 			highestScoreWindow.AdjustWindow(bodyReader, 0, false)
 		}
-
 		highestScoreWindow.MaterializeWindow(bodyReader)
 		excerptCandidates = append(excerptCandidates, highestScoreWindow)
 	}

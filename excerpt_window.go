@@ -72,8 +72,8 @@ func (e *ExcerptWindowBM) AdjustWindow(body *strings.Reader, prependChars uint32
 	var bufSize int
 	body.Seek(int64(e.Matches[0].Start), 0)
 	// i am not sure why but i get positions that were not rune starts in
-	// multibyte character texts. until then i will have to adjust the start
-	// position here...
+	// multibyte character texts. until the reason is understood i will have to
+	// adjust the start position here...
 	var moveOffsets uint32 = 0
 	for {
 		b, err := body.ReadByte()
@@ -105,7 +105,7 @@ func (e *ExcerptWindowBM) AdjustWindow(body *strings.Reader, prependChars uint32
 		rc += 1
 	}
 	e.ByteLength = uint32(bufSize)
-	for i := len(e.Matches) - 1; i > 1; i-- {
+	for i := len(e.Matches) - 1; i > 0; i-- {
 		if e.Matches[i].Start > e.Start+e.ByteLength {
 			e.Score -= e.Matches[i].Score
 			e.Matches = e.Matches[:i]
@@ -116,7 +116,6 @@ func (e *ExcerptWindowBM) AdjustWindow(body *strings.Reader, prependChars uint32
 	if e.Matches[len(e.Matches)-1].Start+e.Matches[len(e.Matches)-1].ByteLength > e.Start+e.ByteLength {
 		e.ByteLength = (e.Matches[len(e.Matches)-1].Start + e.Matches[len(e.Matches)-1].ByteLength) - e.Start
 	}
-
 	if prependChars == 0 {
 		return
 	}
@@ -125,10 +124,9 @@ func (e *ExcerptWindowBM) AdjustWindow(body *strings.Reader, prependChars uint32
 	if e.Start == 0 {
 		return
 	}
-
 	if e.Start < prependChars {
-		e.Start = 0
 		e.ByteLength += e.Start
+		e.Start = 0
 		return
 	}
 
