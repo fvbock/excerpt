@@ -63,7 +63,13 @@ func FindExcerptsBM(searchterms map[string]float64, body string, eLength int,
 	bodyReader := strings.NewReader(body)
 
 	for term, weight := range searchterms {
+		if len(term) < 1 {
+			continue
+		}
 		offsetChannels[term] = substr.IndexesWithinReaderStr(strings.NewReader(body), strings.ToLower(term))
+		if weight < 0 {
+			weight = 0
+		}
 		termScores[term] = &TermScore{
 			// Score:      float64(len([]rune(term))) * weight,
 			Score:      weight,
