@@ -1,9 +1,11 @@
 package excerpt
 
 import (
-	"github.com/fvbock/substr/src/substr"
 	"strings"
 	"sync"
+
+	"github.com/fvbock/substr/src/substr"
+	"github.com/fvbock/uds-go/slice"
 )
 
 const (
@@ -63,7 +65,8 @@ func FindExcerptsBM(searchterms map[string]float64, body string, eLength int,
 	for term, weight := range searchterms {
 		offsetChannels[term] = substr.IndexesWithinReaderStr(strings.NewReader(body), strings.ToLower(term))
 		termScores[term] = &TermScore{
-			Score:      float64(len([]rune(term))) * weight,
+			// Score:      float64(len([]rune(term))) * weight,
+			Score:      weight,
 			ByteLength: uint32(len([]byte(term))),
 		}
 		finishedOffsetChannels[term] = false
@@ -80,13 +83,14 @@ func FindExcerptsBM(searchterms map[string]float64, body string, eLength int,
 				if !open {
 					finishedOffsetChannels[term] = true
 					if len(sortBuffers[term]) == 0 {
-						if len(channelkeys) > 2 {
-							channelkeys = append(channelkeys[:i], channelkeys[i+1:]...)
-						} else if len(channelkeys) == 2 {
-							channelkeys = []string{channelkeys[1-i]}
-						} else {
-							channelkeys = []string{}
-						}
+						// if len(channelkeys) > 2 {
+						// 	channelkeys = append(channelkeys[:i], channelkeys[i+1:]...)
+						// } else if len(channelkeys) == 2 {
+						// 	channelkeys = []string{channelkeys[1-i]}
+						// } else {
+						// 	channelkeys = []string{}
+						// }
+						channelkeys = slice.DeleteStringSlice(channelkeys, i)
 						continue fanin
 					} else {
 						flush = true
@@ -107,11 +111,12 @@ func FindExcerptsBM(searchterms map[string]float64, body string, eLength int,
 								if len(otherterm) < len(term) && otherterm == term[0:len(otherterm)] {
 									for oi, otherOffset := range sortBuffers[otherterm] {
 										if otherOffset == o.Offset {
-											if len(sortBuffers[otherterm]) == oi+1 {
-												sortBuffers[otherterm] = sortBuffers[otherterm][:oi]
-											} else {
-												sortBuffers[otherterm] = append(sortBuffers[otherterm][:oi], sortBuffers[otherterm][oi+1:]...)
-											}
+											// if len(sortBuffers[otherterm]) == oi+1 {
+											// 	sortBuffers[otherterm] = sortBuffers[otherterm][:oi]
+											// } else {
+											// 	sortBuffers[otherterm] = append(sortBuffers[otherterm][:oi], sortBuffers[otherterm][oi+1:]...)
+											// }
+											sortBuffers[otherterm] = slice.DeleteUint32Slice(sortBuffers[otherterm], oi)
 											break
 										}
 									}
@@ -164,7 +169,8 @@ func FindExcerptsBM(searchterms map[string]float64, body string, eLength int,
 							sortBuffers[cKey] = []uint32{}
 						}
 						if len(sortBuffers[cKey]) == 0 && finishedOffsetChannels[cKey] == true {
-							channelkeys = append(channelkeys[:c], channelkeys[c+1:]...)
+							// channelkeys = append(channelkeys[:c], channelkeys[c+1:]...)
+							channelkeys = slice.DeleteStringSlice(channelkeys, c)
 						}
 					}
 
@@ -234,6 +240,8 @@ func FindExcerptsBM(searchterms map[string]float64, body string, eLength int,
 			ByteLength: scores.s[matchOffset].ByteLength,
 		}
 		scores.RUnlock()
+		// TODO: do not continue until we reach the need to remove - do not
+		// want to score windows that can still be extended...
 		for {
 			if currentWindow.AddMatch(m) == false {
 				currentWindow.RemoveFirstMatch()
